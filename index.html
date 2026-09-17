@@ -41,7 +41,6 @@
 
   a{ color: inherit; text-decoration: none; }
 
-  /* ---------- Верхний бар: имя ---------- */
   .bar-top{
     position: fixed;
     top: 0; left: 0; right: 0;
@@ -67,7 +66,6 @@
     border-left: 1px solid var(--border);
   }
 
-  /* ---------- Нижний бар: навигация + локация ---------- */
   .bar-nav{
     position: fixed;
     top: var(--bar-h);
@@ -108,7 +106,6 @@
     letter-spacing: 0.02em;
   }
 
-  /* ---------- Hero ---------- */
   .hero{
     position: relative;
     min-height: 100vh;
@@ -117,7 +114,6 @@
     flex-direction: column;
     justify-content: center;
   }
-  /* ---------- Динамичный фон: прибит к viewport на всей странице ---------- */
   .hero-bg{
     position: fixed;
     inset: -10%;
@@ -161,7 +157,6 @@
     margin-bottom: 34px;
   }
 
-  /* ---------- Секции ---------- */
   section{
     padding: 120px 32px;
     max-width: 980px;
@@ -173,7 +168,6 @@
     margin-bottom: 16px;
   }
 
-  /* ---------- Философия ---------- */
   #philosophy{
     opacity: 0;
     transform: translateY(18px);
@@ -210,7 +204,6 @@
     max-width: 62ch;
   }
 
-  /* ---------- Проекты ---------- */
   #projects .section-label{ margin-bottom: 8px; }
   #projects h2{
     font-size: clamp(26px, 3.5vw, 36px);
@@ -314,7 +307,6 @@
     border-top: 1px solid var(--border);
   }
 
-  /* ---------- Кнопка "наверх" ---------- */
   .scroll-top{
     position: fixed;
     right: 28px;
@@ -347,7 +339,6 @@
   }
   .scroll-top svg{ width: 16px; height: 16px; }
 
-  /* ---------- Уменьшенная анимация ---------- */
   @media (prefers-reduced-motion: reduce){
     html{ scroll-behavior: auto; }
     .hero-bg{ animation: none; }
@@ -357,7 +348,6 @@
     .scroll-top{ transition: none; }
   }
 
-  /* ---------- Мобильная адаптация ---------- */
   @media (max-width: 760px){
     :root{ --bar-h: 56px; --nav-h: 88px; }
     .bar-nav{ flex-direction: column; align-items: flex-start; gap: 8px; padding: 10px 20px; height: auto; }
@@ -393,9 +383,9 @@
 
   <div class="bar-nav">
     <div class="links">
-      <button onclick="return false;">Telegram</button>
-      <button onclick="return false;">Почта</button>
-      <button onclick="return false;">LinkedIn</button>
+      <button onclick="window.open('https://t.me/Georgiy_F','_blank','noopener,noreferrer')">Telegram</button>
+      <button onclick="window.location.href='mailto:gsf.fadeev@gmail.com'">Почта</button>
+      <button onclick="window.open('https://www.linkedin.com/in/georgiy-fadeev/','_blank','noopener,noreferrer')">LinkedIn</button>
       <button onclick="document.querySelector('#philosophy').scrollIntoView()">Философия</button>
       <button onclick="document.querySelector('#projects').scrollIntoView()">Проекты</button>
     </div>
@@ -531,7 +521,6 @@
   </button>
 
 <script>
-  // Кнопка "наверх": появляется после скролла, клик — плавный возврат
   const scrollTopBtn = document.getElementById('scrollTop');
   window.addEventListener('scroll', () => {
     scrollTopBtn.classList.toggle('visible', window.scrollY > 500);
@@ -541,7 +530,6 @@
     window.scrollTo({ top: 0, behavior });
   });
 
-  // Fade in философии по скроллу
   const philosophy = document.getElementById('philosophy');
   const io = new IntersectionObserver((entries) => {
     entries.forEach(e => {
@@ -550,7 +538,6 @@
   }, { threshold: 0.2 });
   io.observe(philosophy);
 
-  // Fade in карточек проектов по очереди
   const cards = document.querySelectorAll('.flip-card');
   cards.forEach((card, i) => {
     card.style.transitionDelay = `${i * 150}ms`;
