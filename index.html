@@ -8,15 +8,16 @@
   @import url('https://fonts.googleapis.com/css2?family=Bitter:wght@500;600;700&family=Inter:wght@400;500;600&display=swap');
 
   :root{
-    --bg: #12151A;
-    --bg-alt: #1B1F26;
-    --bg-alt-2: #21262F;
-    --text: #EDEAE2;
-    --text-muted: #9199A6;
-    --accent: #C9A227;
-    --accent-2: #C9A227;
-    --accent-soft: #4A7C7C;
-    --border: rgba(237,234,226,0.10);
+    --bg: #939597;
+    --bg-alt: #86888B;
+    --bg-alt-2: #78797C;
+    --text: #1A1A1A;
+    --text-muted: #4A4A4A;
+    --accent: #F5DF4D;
+    --accent-2: #F5DF4D;
+    --accent-soft: #1A1A1A;
+    --burgundy: #7B1E3A;
+    --border: rgba(26,26,26,0.22);
     --bar-h: 64px;
     --nav-h: 52px;
   }
@@ -41,6 +42,7 @@
 
   a{ color: inherit; text-decoration: none; }
 
+  /* ---------- Верхний бар: имя ---------- */
   .bar-top{
     position: fixed;
     top: 0; left: 0; right: 0;
@@ -48,7 +50,7 @@
     display: flex;
     align-items: center;
     padding: 0 32px;
-    background: rgba(18,21,26,0.88);
+    background: rgba(134,136,139,0.85);
     backdrop-filter: blur(10px);
     border-bottom: 1px solid var(--border);
     z-index: 100;
@@ -66,6 +68,7 @@
     border-left: 1px solid var(--border);
   }
 
+  /* ---------- Нижний бар: навигация + локация ---------- */
   .bar-nav{
     position: fixed;
     top: var(--bar-h);
@@ -75,7 +78,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 0 32px;
-    background: rgba(18,21,26,0.94);
+    background: rgba(134,136,139,0.90);
     border-bottom: 1px solid var(--border);
     z-index: 99;
   }
@@ -106,6 +109,7 @@
     letter-spacing: 0.02em;
   }
 
+  /* ---------- Hero ---------- */
   .hero{
     position: relative;
     min-height: 100vh;
@@ -114,14 +118,16 @@
     flex-direction: column;
     justify-content: center;
   }
+  /* ---------- Динамичный фон: прибит к viewport на всей странице ---------- */
   .hero-bg{
     position: fixed;
     inset: -10%;
     z-index: -2;
     background:
-      radial-gradient(ellipse 55% 40% at 25% 30%, rgba(201,162,39,0.16), transparent 60%),
-      radial-gradient(ellipse 45% 35% at 78% 65%, rgba(74,124,124,0.20), transparent 60%),
-      radial-gradient(ellipse 60% 50% at 50% 100%, rgba(201,162,39,0.06), transparent 70%);
+      radial-gradient(ellipse 55% 40% at 25% 30%, rgba(245,223,77,0.45), transparent 60%),
+      radial-gradient(ellipse 45% 35% at 78% 65%, rgba(147,149,151,0.20), transparent 60%),
+      radial-gradient(ellipse 40% 32% at 85% 20%, rgba(123,30,58,0.28), transparent 65%),
+      radial-gradient(ellipse 60% 50% at 50% 100%, rgba(245,223,77,0.30), transparent 70%);
     animation: drift 22s ease-in-out infinite alternate;
     will-change: transform;
   }
@@ -157,6 +163,7 @@
     margin-bottom: 34px;
   }
 
+  /* ---------- Секции ---------- */
   section{
     padding: 120px 32px;
     max-width: 980px;
@@ -168,6 +175,7 @@
     margin-bottom: 16px;
   }
 
+  /* ---------- Философия ---------- */
   #philosophy{
     opacity: 0;
     transform: translateY(18px);
@@ -177,10 +185,46 @@
     opacity: 1;
     transform: translateY(0);
   }
-  #philosophy h2{
-    font-size: clamp(24px, 3.2vw, 32px);
-    margin-bottom: 48px;
-    max-width: 16ch;
+  .philo-tabs{
+    display: flex;
+    gap: 32px;
+    margin-bottom: 44px;
+    border-bottom: 1px solid var(--border);
+  }
+  .philo-tab{
+    background: none;
+    border: none;
+    font-family: 'Bitter', serif;
+    font-size: clamp(18px, 2.4vw, 24px);
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 0 0 18px 0;
+    position: relative;
+    transition: color 0.25s ease;
+  }
+  .philo-tab::after{
+    content: '';
+    position: absolute;
+    left: 0; right: 0; bottom: -1px;
+    height: 2px;
+    background: var(--accent);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.3s ease;
+  }
+  .philo-tab:hover{ color: var(--text); }
+  .philo-tab.active{ color: var(--text); }
+  .philo-tab.active::after{ transform: scaleX(1); }
+
+  .philo-panel{ display: none; }
+  .philo-panel.active{
+    display: block;
+    animation: philoFadeIn 0.45s ease;
+  }
+  @keyframes philoFadeIn{
+    from{ opacity: 0; transform: translateY(10px); }
+    to{ opacity: 1; transform: translateY(0); }
   }
   .principle{
     padding: 28px 0;
@@ -203,7 +247,28 @@
     font-size: 15px;
     max-width: 62ch;
   }
+  .principle p + p{
+    margin-top: 10px;
+  }
+  .principle .hook{
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(26,26,26,0.3);
+    max-width: 62ch;
+  }
+  .principle .hook p{
+    color: var(--text);
+    font-family: 'Bitter', serif;
+    font-weight: 600;
+    font-size: 16px;
+    max-width: none;
+  }
+  .principle .hook .hook-mark{
+    color: var(--burgundy);
+    margin-right: 8px;
+  }
 
+  /* ---------- Проекты ---------- */
   #projects .section-label{ margin-bottom: 8px; }
   #projects h2{
     font-size: clamp(26px, 3.5vw, 36px);
@@ -218,12 +283,13 @@
   .card-grid{
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    grid-template-rows: repeat(4, 150px);
+    grid-template-rows: repeat(5, 150px);
     grid-template-areas:
       "a a b1 b1"
       "a a b2 b2"
       "c d d e"
-      "f f f e";
+      "f f f e"
+      "g g h h";
     gap: 16px;
   }
   .flip-card{
@@ -259,12 +325,12 @@
     transition: border-color 0.25s ease, box-shadow 0.25s ease;
   }
   .flip-front{
-    background: linear-gradient(165deg, rgba(201,162,39,0.07), rgba(201,162,39,0.02));
+    background: linear-gradient(165deg, rgba(245,223,77,0.07), rgba(245,223,77,0.02));
     border: 1px solid var(--border);
   }
   .flip-card:hover .flip-front{
-    border-color: rgba(201,162,39,0.55);
-    box-shadow: 0 0 28px rgba(201,162,39,0.14);
+    border-color: rgba(245,223,77,0.55);
+    box-shadow: 0 0 28px rgba(245,223,77,0.14);
   }
   .flip-front .tag{
     font-size: 11.5px;
@@ -277,9 +343,9 @@
     font-weight: 600;
   }
   .flip-back{
-    background: linear-gradient(155deg, var(--accent), var(--accent-soft));
-    border: 1px solid rgba(201,162,39,0.4);
-    color: #12151A;
+    background: linear-gradient(155deg, #D9CC66, #A6A482);
+    border: 1px solid rgba(123,30,58,0.35);
+    color: #1A1A1A;
     transform: rotateY(180deg);
     justify-content: center;
   }
@@ -295,6 +361,8 @@
   .c5{ grid-area: c;  }
   .c6{ grid-area: f;  }
   .c7{ grid-area: e;  }
+  .c8{ grid-area: g;  }
+  .c9{ grid-area: h;  }
 
   footer{
     padding: 40px 32px 120px;
@@ -307,6 +375,7 @@
     border-top: 1px solid var(--border);
   }
 
+  /* ---------- Кнопка "наверх" ---------- */
   .scroll-top{
     position: fixed;
     right: 28px;
@@ -318,9 +387,9 @@
     justify-content: center;
     border: 1px solid var(--border);
     border-radius: 999px;
-    background: rgba(18,21,26,0.85);
+    background: rgba(20,20,20,0.85);
     backdrop-filter: blur(6px);
-    color: var(--text);
+    color: #F5F5F5;
     cursor: pointer;
     opacity: 0;
     pointer-events: none;
@@ -334,20 +403,24 @@
     transform: translateY(0);
   }
   .scroll-top:hover{
-    border-color: rgba(201,162,39,0.6);
-    box-shadow: 0 0 20px rgba(201,162,39,0.18);
+    border-color: rgba(123,30,58,0.6);
+    box-shadow: 0 0 20px rgba(123,30,58,0.25);
   }
   .scroll-top svg{ width: 16px; height: 16px; }
 
+  /* ---------- Уменьшенная анимация ---------- */
   @media (prefers-reduced-motion: reduce){
     html{ scroll-behavior: auto; }
     .hero-bg{ animation: none; }
     #philosophy{ transition: none; opacity: 1; transform: none; }
+    .philo-panel.active{ animation: none; }
+    .philo-tab{ transition: none; }
     .flip-card .flip-inner{ transition: none; }
     .flip-card{ transition: none; opacity: 1; transform: none; }
     .scroll-top{ transition: none; }
   }
 
+  /* ---------- Мобильная адаптация ---------- */
   @media (max-width: 760px){
     :root{ --bar-h: 56px; --nav-h: 88px; }
     .bar-nav{ flex-direction: column; align-items: flex-start; gap: 8px; padding: 10px 20px; height: auto; }
@@ -357,7 +430,7 @@
     section{ padding: 80px 20px; }
     .card-grid{
       grid-template-columns: 1fr 1fr;
-      grid-template-rows: repeat(7, 150px);
+      grid-template-rows: repeat(9, 150px);
       grid-template-areas:
         "a a"
         "a a"
@@ -365,7 +438,9 @@
         "b2 b2"
         "c d"
         "e e"
-        "f f";
+        "f f"
+        "g g"
+        "h h";
     }
     footer{ flex-direction: column; gap: 8px; }
   }
@@ -386,7 +461,7 @@
       <button onclick="window.open('https://t.me/Georgiy_F','_blank','noopener,noreferrer')">Telegram</button>
       <button onclick="window.location.href='mailto:gsf.fadeev@gmail.com'">Почта</button>
       <button onclick="window.open('https://www.linkedin.com/in/georgiy-fadeev/','_blank','noopener,noreferrer')">LinkedIn</button>
-      <button onclick="document.querySelector('#philosophy').scrollIntoView()">Философия</button>
+      <button onclick="document.querySelector('#philosophy').scrollIntoView()">Философия и принципы</button>
       <button onclick="document.querySelector('#projects').scrollIntoView()">Проекты</button>
     </div>
     <span class="location">Москва</span>
@@ -395,42 +470,111 @@
   <section id="hero" class="hero" style="padding-left:0; padding-right:0; max-width:none;">
     <div class="hero-content">
       <div class="pill-label">Operations &amp; Product</div>
-      <h1>10+ лет строю процессы, которые выдерживают рост</h1>
+      <h1>8+ лет строю процессы в бизнесе, которые выдерживают рост и дают прогнозируемый результат</h1>
       <p>Операционный и продуктовый директор. Запускал бизнесы с нуля, выводил их в прибыль и готовил к продаже.</p>
     </div>
   </section>
 
   <section id="philosophy">
-    <div class="section-label">Философия</div>
-    <h2>Как я работаю с командой</h2>
+    <div class="section-label">Философия и принципы</div>
 
-    <div class="principle">
-      <span class="num">01</span>
-      <h3>Эмпатичное лидерство</h3>
-      <p>Хороший сотрудник стоит дорого, а нанимать всегда дороже, чем удержать. Я вкладываюсь в удержание через доверие, а не через контроль. Но доверие не значит вседозволенность: там, где нужна твердость, я ее проявляю.</p>
+    <div class="philo-tabs">
+      <button class="philo-tab active" data-tab="work">Как я работаю</button>
+      <button class="philo-tab" data-tab="team">Как я работаю с командой</button>
     </div>
 
-    <div class="principle">
-      <span class="num">02</span>
-      <h3>Беру бюрократию на себя</h3>
-      <p>Плохой руководитель держит команду в страхе за место, чтобы она была "в тонусе". Я забираю на себя бюрократию, нереалистичные требования стейкхолдеров и сложные переговоры, чтобы у подопечных не было повода застрять вместо того, чтобы работать.</p>
+    <div class="philo-panel active" data-panel="work">
+      <div class="principle">
+        <span class="num">01</span>
+        <h3>Малая сила, большой результат</h3>
+        <p>Любой цикл работ начинаю с аудита и постановки измеримой цели.</p>
+        <p>Смотрю на задачу извне и вижу дерево метрик целиком. Это позволяет найти рычаг, который иногда дешевле и проще того, который изначально просили растить.</p>
+        <p>Это не вопрос компетенции, но вопрос дистанции до задачи.</p>
+        <p>После аудита собираю дорожную карту: что меняем, зачем, в какой последовательности, какие ресурсы для этого нужны и по каким показателям поймем, что решение работает.</p>
+        <div class="hook"><p><span class="hook-mark">→</span>Роадмап без аудита — гадание, выданное за стратегию.</p></div>
+      </div>
+
+      <div class="principle">
+        <span class="num">02</span>
+        <h3>Мне можно отдать проблему, а не перечень готовых требований</h3>
+        <p>Отдаете мне проблему, я отдаю рабочее решение.</p>
+        <p>И несу за него ответственность как перед стейкхолдером, так и перед командой.</p>
+        <p>В сложных и комплексных задачах последовательно перевожу неизвестное в известное: разбираю проблему, строю гипотезы, проверяю их и двигаюсь дальше.</p>
+        <p>Если гипотеза не сработала, не перевожу стрелки на команду и не рассказываю, почему «рынок оказался не готов». Ищу альтернативу.</p>
+        <div class="hook"><p><span class="hook-mark">→</span>Ошибка — не повод оправдываться, а новая информация о задаче.</p></div>
+      </div>
+
+      <div class="principle">
+        <span class="num">03</span>
+        <h3>Процессы нужны бизнесу, а не наоборот</h3>
+        <p>Не существует методологии, которая подходит любому бизнесу и любой ситуации.</p>
+        <p>Не буду внедрять Agile только потому, что он Agile, или строить десять новых процессов там, где проблему можно решить двумя.</p>
+        <p>Методология — инструмент под задачу, а не вера, которой нужно следовать до конца.</p>
+        <div class="hook"><p><span class="hook-mark">→</span>Собираю систему под конкретную компанию, а не компанию под систему.</p></div>
+      </div>
+
+      <div class="principle">
+        <span class="num">04</span>
+        <h3>Не бизнес владеет предпринимателем, а предприниматель бизнесом</h3>
+        <p>На старте владелец тащит на себе большинство процессов сам, это закономерно, но не эффективно при росте компании.</p>
+        <p>Пропускная способность и энергия конечны. Каждый час на операционку это час, который не дошел до стратегии или нового направления.</p>
+        <p>Снимаю с владельца процессы, которые завязаны лично на нем, описываю их и выстраиваю до автономной системы, где не требуется постоянное участие собственника.</p>
+        <div class="hook"><p><span class="hook-mark">→</span>У предпринимателя стратегическая роль, работать стоит над бизнесом, а не в нем.</p></div>
+      </div>
+    </div>
+
+    <div class="philo-panel" data-panel="team">
+      <div class="principle">
+        <span class="num">01</span>
+        <h3>Команда должна приносить решения, а не проблемы</h3>
+        <p>Когда сотрудник приходит с проблемой, я часто уже понимаю, как ее решить. Но не всегда даю ответ.</p>
+        <p>Если человек способен найти решение сам, направляю его. Если проблема может повториться, вместе ищем способ убрать ее причину и при необходимости закрепляем решение в процессе.</p>
+        <p>Так постепенно команда перестает эскалировать каждую сложность наверх.</p>
+        <div class="hook"><p><span class="hook-mark">→</span>Моя задача — построить систему, которая умеет решать проблемы без меня.</p></div>
+      </div>
+
+      <div class="principle">
+        <span class="num">02</span>
+        <h3>Сильный сотрудник — дефицитный ресурс</h3>
+        <p>Слежу не только за тем, что человек делает, но и за тем, находится ли он на своем месте.</p>
+        <p>Слабый результат не всегда говорит о квалификации сотрудника. Иногда ему мешает неправильный пул задач, отсутствие ресурсов, конфликт ролей или работа, от которой он уже выгорел.</p>
+        <div class="hook"><p><span class="hook-mark">→</span>Моя задача как руководителя — это увидеть и понять, что дешевле для бизнеса: изменить условия, перераспределить задачи, помочь человеку вырасти или заменить его.</p></div>
+      </div>
+
+      <div class="principle">
+        <span class="num">03</span>
+        <h3>Делаю для человека чуть больше — он делает чуть больше для компании</h3>
+        <p>Я не считаю страх хорошим управленческим инструментом.</p>
+        <p>Забираю с команды то, что мешает нормально работать: тяжелые переговоры со стейкхолдерами, нехватку ресурсов, неясные приоритеты, организационные блокеры.</p>
+        <p>Личное не трогаю, пока оно не начинает влиять на работу. Но если вижу, что человеку что-то мешает расти или выполнять свою функцию, говорю об этом прямо.</p>
+        <p>Люди чувствуют отношение и обычно отвечают тем же.</p>
+        <div class="hook"><p><span class="hook-mark">→</span>Это не про комфорт ради комфорта. Это про среду, в которой сильный специалист выдает свой максимум.</p></div>
+      </div>
+
+      <div class="principle">
+        <span class="num">04</span>
+        <h3>Доверие не равно вседозволенности</h3>
+        <p>Есть корпоративные культуры, где о проблемах не говорят прямо, зато отлично умеют обсуждать их без человека.</p>
+        <p>Мне такой подход не близок.</p>
+        <p>Если сотрудник творит хуйню, он узнает об этом. Не для того, чтобы уличить его в глупости, а чтобы проблему можно было исправить.</p>
+        <div class="hook"><p><span class="hook-mark">→</span>Честность неудобна один раз. Недосказанность неудобна постоянно.</p></div>
+      </div>
     </div>
   </section>
 
   <section id="projects">
     <div class="section-label">Проекты</div>
-    <h2>Кейсы и направления</h2>
-    <p>Плейсхолдер: содержание карточек (кейсы или скиллы) еще не утверждено.</p>
+    <h2>Почему это работает на практике</h2>
 
     <div class="card-grid">
       <div class="flip-card c1" onclick="this.classList.toggle('flipped')">
         <div class="flip-inner">
           <div class="flip-face flip-front">
-            <span class="tag">EdTech</span>
-            <h4>Business Booster</h4>
+            <span class="tag">Кризисный менеджмент</span>
+            <h4>Crypto Bank</h4>
           </div>
           <div class="flip-face flip-back">
-            <p>MVP до флагманского продукта, $1M+ годовой выручки, до 60% маржи.</p>
+            <p>Выстроил механизм контроля трейдингового счета и наладил регулярную отчетность для инвесторов.</p>
           </div>
         </div>
       </div>
@@ -438,11 +582,11 @@
       <div class="flip-card c2" onclick="this.classList.toggle('flipped')">
         <div class="flip-inner">
           <div class="flip-face flip-front">
-            <span class="tag">Manufacturing</span>
-            <h4>HolySweet</h4>
+            <span class="tag">Масштабирование</span>
+            <h4>Кровельная компания, США</h4>
           </div>
           <div class="flip-face flip-back">
-            <p>Zero-waste модель, подготовка к продаже, сделка на мультипликаторе 5x EBITDA.</p>
+            <p>Закрыл потери в выручке, довел 2 сделки M&amp;A до полной интеграции, подготовил бизнес к IPO.</p>
           </div>
         </div>
       </div>
@@ -450,11 +594,11 @@
       <div class="flip-card c3" onclick="this.classList.toggle('flipped')">
         <div class="flip-inner">
           <div class="flip-face flip-front">
-            <span class="tag">Retail</span>
-            <h4>DNS Retail</h4>
+            <span class="tag">Масштабирование</span>
+            <h4>Судостроение, Эстония</h4>
           </div>
           <div class="flip-face flip-back">
-            <p>Опыт в крупном ритейле, операционные процессы.</p>
+            <p>Расширил цепочку услуг через покупку дистрибьютора и запуск логистической компании.</p>
           </div>
         </div>
       </div>
@@ -462,11 +606,11 @@
       <div class="flip-card c4" onclick="this.classList.toggle('flipped')">
         <div class="flip-inner">
           <div class="flip-face flip-front">
-            <span class="tag">Automotive</span>
-            <h4>LikeAvto</h4>
+            <span class="tag">Трансформация</span>
+            <h4>Сеть медцентров, Узбекистан</h4>
           </div>
           <div class="flip-face flip-back">
-            <p>Переход от процессного к проектному управлению, рост автономности подразделений.</p>
+            <p>Снизил риски оттока ключевого персонала и обеспечил плавный выход прежних собственников после M&amp;A.</p>
           </div>
         </div>
       </div>
@@ -474,11 +618,11 @@
       <div class="flip-card c5" onclick="this.classList.toggle('flipped')">
         <div class="flip-inner">
           <div class="flip-face flip-front">
-            <span class="tag">Coffee</span>
-            <h4>Flow Coffee</h4>
+            <span class="tag">Разгрузка собственника</span>
+            <h4>Образовательный консалтинг, СНГ</h4>
           </div>
           <div class="flip-face flip-back">
-            <p>Продуктовое направление, операционная модель.</p>
+            <p>Увеличил пропускную способность кураторов, снизил вовлеченность собственника в операционку на 50%.</p>
           </div>
         </div>
       </div>
@@ -486,11 +630,11 @@
       <div class="flip-card c6" onclick="this.classList.toggle('flipped')">
         <div class="flip-inner">
           <div class="flip-face flip-front">
-            <span class="tag">Skill</span>
-            <h4>P&amp;L и cash flow модели</h4>
+            <span class="tag">M&amp;A</span>
+            <h4>Логистическая компания, США</h4>
           </div>
           <div class="flip-face flip-back">
-            <p>4-летний операционный roadmap, финансовое планирование с нуля.</p>
+            <p>Подготовил управляющую компанию к сделке слияния на выгодных условиях, курировал интеграцию.</p>
           </div>
         </div>
       </div>
@@ -498,11 +642,35 @@
       <div class="flip-card c7" onclick="this.classList.toggle('flipped')">
         <div class="flip-inner">
           <div class="flip-face flip-front">
-            <span class="tag">Skill</span>
-            <h4>Найм и удержание</h4>
+            <span class="tag">Новое направление</span>
+            <h4>Недвижимость, РФ</h4>
           </div>
           <div class="flip-face flip-back">
-            <p>Построение команд под рост, снижение текучки.</p>
+            <p>Построил операционную и юридическую инфраструктуру продукта с нуля, запустил продажи и агентскую сеть.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="flip-card c8" onclick="this.classList.toggle('flipped')">
+        <div class="flip-inner">
+          <div class="flip-face flip-front">
+            <span class="tag">Инвестиции</span>
+            <h4>Исследовательская компания</h4>
+          </div>
+          <div class="flip-face flip-back">
+            <p>Подтвердил устойчивость роста независимым анализом рынка, подготовил инвестиционное предложение.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="flip-card c9" onclick="this.classList.toggle('flipped')">
+        <div class="flip-inner">
+          <div class="flip-face flip-front">
+            <span class="tag">Инвестиции</span>
+            <h4>Сеть супермаркетов, Восточная Европа</h4>
+          </div>
+          <div class="flip-face flip-back">
+            <p>Привлек $1,5M первого транша инвестиций, увеличил число точек сети на 20%.</p>
           </div>
         </div>
       </div>
@@ -521,6 +689,7 @@
   </button>
 
 <script>
+  // Кнопка "наверх": появляется после скролла, клик — плавный возврат
   const scrollTopBtn = document.getElementById('scrollTop');
   window.addEventListener('scroll', () => {
     scrollTopBtn.classList.toggle('visible', window.scrollY > 500);
@@ -530,6 +699,19 @@
     window.scrollTo({ top: 0, behavior });
   });
 
+  // Переключение вкладок философии
+  const philoTabs = document.querySelectorAll('.philo-tab');
+  philoTabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      if (tab.classList.contains('active')) return;
+      philoTabs.forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.philo-panel').forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      document.querySelector(`.philo-panel[data-panel="${tab.dataset.tab}"]`).classList.add('active');
+    });
+  });
+
+  // Fade in философии по скроллу
   const philosophy = document.getElementById('philosophy');
   const io = new IntersectionObserver((entries) => {
     entries.forEach(e => {
@@ -538,6 +720,7 @@
   }, { threshold: 0.2 });
   io.observe(philosophy);
 
+  // Fade in карточек проектов по очереди
   const cards = document.querySelectorAll('.flip-card');
   cards.forEach((card, i) => {
     card.style.transitionDelay = `${i * 150}ms`;
