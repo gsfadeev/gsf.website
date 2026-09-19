@@ -109,6 +109,45 @@
     letter-spacing: 0.02em;
   }
 
+  /* ---------- Бургер-меню (только мобильная версия) ---------- */
+  .burger{
+    display: none;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 6px;
+    width: 32px;
+    height: 32px;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .burger span,
+  .burger span::before,
+  .burger span::after{
+    display: block;
+    width: 20px;
+    height: 2px;
+    background: var(--text);
+    border-radius: 2px;
+  }
+  .burger span{
+    position: relative;
+    transition: background-color 0.2s ease;
+  }
+  .burger span::before,
+  .burger span::after{
+    content:'';
+    position: absolute;
+    left: 0;
+    transition: transform 0.25s ease, top 0.25s ease;
+  }
+  .burger span::before{ top: -6px; }
+  .burger span::after{ top: 6px; }
+  .bar-nav.menu-open .burger span{ background: transparent; }
+  .bar-nav.menu-open .burger span::before{ top: 0; transform: rotate(45deg); }
+  .bar-nav.menu-open .burger span::after{ top: 0; transform: rotate(-45deg); }
+
   /* ---------- Hero ---------- */
   .hero{
     position: relative;
@@ -418,13 +457,45 @@
     .flip-card .flip-inner{ transition: none; }
     .flip-card{ transition: none; opacity: 1; transform: none; }
     .scroll-top{ transition: none; }
+    .bar-nav .links{ transition: none; }
+    .burger span::before, .burger span::after{ transition: none; }
   }
 
   /* ---------- Мобильная адаптация ---------- */
   @media (max-width: 760px){
-    :root{ --bar-h: 56px; --nav-h: 88px; }
-    .bar-nav{ flex-direction: column; align-items: flex-start; gap: 8px; padding: 10px 20px; height: auto; }
-    .bar-nav .links{ flex-wrap: wrap; gap: 16px 20px; }
+    :root{ --bar-h: 56px; --nav-h: 52px; }
+    .bar-nav{ padding: 0 16px 0 20px; }
+    .burger{ display: flex; order: 2; }
+    .bar-nav .location{ order: 1; }
+    .bar-nav .links{
+      position: fixed;
+      top: calc(var(--bar-h) + var(--nav-h));
+      left: 0; right: 0;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0;
+      background: rgba(134,136,139,0.98);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+      max-height: 0;
+      overflow: hidden;
+      opacity: 0;
+      transition: max-height 0.3s ease, opacity 0.2s ease;
+    }
+    .bar-nav.menu-open .links{
+      max-height: 420px;
+      opacity: 1;
+      padding: 4px 20px 14px;
+    }
+    .bar-nav .links button{
+      width: 100%;
+      text-align: left;
+      padding: 13px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 15px;
+    }
+    .bar-nav .links button:last-child{ border-bottom: none; }
+    .bar-nav .links button:hover::after{ display: none; }
     .hero-content{ padding: 0 20px; }
     .quick-contacts{ flex-wrap: wrap; }
     section{ padding: 80px 20px; }
@@ -456,7 +527,8 @@
     <span class="role">consultant, c-level adviser</span>
   </div>
 
-  <div class="bar-nav">
+  <div class="bar-nav" id="barNav">
+    <button class="burger" id="burgerBtn" aria-label="Меню" aria-expanded="false"><span></span></button>
     <div class="links">
       <button onclick="window.open('https://t.me/Georgiy_F','_blank','noopener,noreferrer')">Telegram</button>
       <button onclick="window.location.href='mailto:gsf.fadeev@gmail.com'">Почта</button>
@@ -697,6 +769,26 @@
   scrollTopBtn.addEventListener('click', () => {
     const behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
     window.scrollTo({ top: 0, behavior });
+  });
+
+  // Бургер-меню
+  const barNav = document.getElementById('barNav');
+  const burgerBtn = document.getElementById('burgerBtn');
+  burgerBtn.addEventListener('click', () => {
+    const isOpen = barNav.classList.toggle('menu-open');
+    burgerBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+  });
+  document.querySelectorAll('.bar-nav .links button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      barNav.classList.remove('menu-open');
+      burgerBtn.setAttribute('aria-expanded', 'false');
+    });
+  });
+  document.addEventListener('click', (e) => {
+    if (barNav.classList.contains('menu-open') && !barNav.contains(e.target)) {
+      barNav.classList.remove('menu-open');
+      burgerBtn.setAttribute('aria-expanded', 'false');
+    }
   });
 
   // Переключение вкладок философии
