@@ -227,7 +227,11 @@
     justify-content: center;
   }
   @media (min-width: 761px){
-    .hero{ height: 380vh; }
+    /* Раньше высота была больше — под удержание и исчезание фото. Анимации
+       исчезания больше нет, всё просто появляется и остаётся, поэтому
+       секция короче: без неё после полного появления шёл долгий "мёртвый"
+       скролл, на котором экран не менялся, и это ощущалось как зависание. */
+    .hero{ height: 240vh; }
   }
   /* ---------- Динамичный фон: прибит к viewport на всей странице ---------- */
   .hero-bg{
@@ -1653,16 +1657,16 @@
   // Фото не остаётся висеть на экране: оно проявляется уже ПОСЛЕ того, как
   // прочитаны буллеты 1-2-3, коротко держится, а затем само растворяется —
   // расфокусируется и чуть увеличивается, будто уходит в размытый фон.
-  // Фото один раз плавно появляется и остаётся видимым — без анимации исчезания.
+  // Фото плавно появляется по мере скролла вниз и так же плавно уходит,
+  // если скроллить обратно наверх — вперёд после полного появления уже
+  // не исчезает, только реагирует на обратный скролл.
   // Старт появления привязан к буллету 2 (его порог — 0.5, см. ниже).
   const PHOTO_IN_START = 0.51;   // сразу после буллета 2
   const PHOTO_IN_END = 0.74;     // полностью появилось
-  const MAX_BLUR = 22;   // px, расфокус на входе
-  const MAX_SCALE = 0.06; // доп. увеличение на входе
+  const MAX_BLUR = 22;   // px, расфокус на входе/выходе
+  const MAX_SCALE = 0.06; // доп. увеличение на входе/выходе
 
-  let heroPhotoRevealed = false;
   function updateHeroPhoto(progress){
-    if (heroPhotoRevealed) return; // однажды появившись, фото остаётся видимым без анимации исчезания
     let t = 0; // 0..1, видимость/резкость (1 = чётко и в фокусе)
     if (progress <= PHOTO_IN_START) {
       t = 0;
@@ -1676,7 +1680,6 @@
     heroPhoto.style.opacity = String(t);
     heroPhoto.style.filter = blur > 0.05 ? `blur(${blur.toFixed(1)}px)` : 'none';
     heroPhoto.style.transform = `translateY(${(1 - t) * 12}px) scale(${scale})`;
-    if (t >= 1) heroPhotoRevealed = true;
   }
 
   function updateHeroBulletsDesktop(){
@@ -1692,9 +1695,9 @@
     const n = heroBullets.length;
     heroBullets.forEach((el, i) => {
       const threshold = (i + 1) / (n + 1);
-      if (progress >= threshold) el.classList.add('visible');
+      el.classList.toggle('visible', progress >= threshold);
     });
-    if (progress >= 0.85) statsBar.classList.add('visible');
+    statsBar.classList.toggle('visible', progress >= 0.85);
     updateHeroPhoto(progress);
   }
 
