@@ -803,6 +803,29 @@
     border-top: 1px solid var(--border);
   }
 
+
+  /* ---------- Cookie-плашка ---------- */
+  .footer-link{ color: var(--text-muted); text-decoration: underline; text-underline-offset: 3px; }
+  .footer-link:hover{ color: var(--text); }
+  .cookie-bar{
+    position: fixed; left: 24px; bottom: 24px; z-index: 95;
+    max-width: 400px; display: flex; align-items: center; gap: 16px;
+    padding: 14px 16px; border: 1px solid var(--border); border-radius: 14px;
+    background: rgba(var(--bg-alt-rgb), 0.94); backdrop-filter: blur(8px);
+    color: var(--text); font-family: 'Inter', sans-serif; font-size: 13.5px; line-height: 1.45;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.12);
+  }
+  .cookie-bar[hidden]{ display: none; }
+  .cookie-bar p{ margin: 0; }
+  .cookie-bar a{ color: var(--accent-text); }
+  .cookie-bar button{
+    flex: none; padding: 8px 18px; border-radius: 999px; cursor: pointer;
+    border: 1px solid var(--text); background: var(--text); color: var(--bg);
+    font: 500 13.5px 'Inter', sans-serif;
+  }
+  @media (max-width: 600px){
+    .cookie-bar{ left: 12px; right: 12px; bottom: 12px; max-width: none; }
+  }
   /* ---------- Кнопка "наверх" ---------- */
   .scroll-top{
     position: fixed;
@@ -1538,8 +1561,14 @@
 
   <footer>
     <span>Георгий Фадеев</span>
+    <a class="footer-link" href="/privacy/">Политика конфиденциальности и cookies</a>
     <span>© 2026</span>
   </footer>
+
+  <div class="cookie-bar" id="cookieBar" role="region" aria-label="Уведомление о cookies" hidden>
+    <p>Сайт использует cookies и Яндекс Метрику, чтобы считать посещения. <a href="/privacy/">Подробнее</a></p>
+    <button type="button" id="cookieOk">Ок</button>
+  </div>
 
   <button class="scroll-top" id="scrollTop" aria-label="Наверх страницы">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1794,5 +1823,19 @@
   cardsObserver.observe(document.querySelector('#projects'));
 </script>
 
+<script>
+/* Cookie-плашка: показываем, пока не нажали «Ок» */
+(function(){
+  var bar = document.getElementById('cookieBar'), ok = document.getElementById('cookieOk');
+  if (!bar || !ok) return;
+  var seen = false;
+  try { seen = localStorage.getItem('gf-cookie-ok') === '1'; } catch(e) {}
+  if (!seen) bar.hidden = false;
+  ok.addEventListener('click', function(){
+    bar.hidden = true;
+    try { localStorage.setItem('gf-cookie-ok', '1'); } catch(e) {}
+  });
+})();
+</script>
 </body>
 </html>
