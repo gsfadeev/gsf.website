@@ -1225,6 +1225,363 @@
     } catch(e) {}
   })();
 </script>
+<style>
+  /* ---------- Пайплайн работ в клиентском разделе ---------- */
+  .pipe{ margin-top: 26px; max-width: 62ch; border: 1px solid var(--border); border-radius: 14px; background: rgba(var(--bg-alt-rgb),0.45); }
+  .pipe-btn{
+    width: 100%; display: flex; align-items: center; gap: 14px;
+    padding: 14px 16px 14px 20px; background: none; border: none; cursor: pointer;
+    color: var(--text); font-family: inherit; text-align: left;
+  }
+  .pipe-title{ font-family: 'Bitter', serif; font-weight: 600; font-size: 16px; flex: 1; }
+  .pipe-meta{ font-size: 12.5px; color: var(--text-muted); white-space: nowrap; }
+  .pipe-btn:hover .plus, .pipe.open .plus{ color: var(--burgundy); border-color: rgba(var(--burgundy-rgb),0.4); }
+  .pipe.open .plus svg{ transform: rotate(45deg); }
+  .pipe-btn:focus-visible{ outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 14px; }
+  .pipe-collapse{ display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.45s cubic-bezier(.4,.2,.2,1); }
+  .pipe.open .pipe-collapse{ grid-template-rows: 1fr; }
+  .pipe-inner{ overflow: hidden; min-height: 0; padding: 0 20px; }
+  .pipe.open .pipe-inner{ padding-bottom: 20px; }
+
+  /* полоса прогресса: 5 сегментов заполняются по очереди */
+  .pipe-track{ display: flex; gap: 6px; margin: 2px 0 18px; }
+  .pipe-seg{ flex: 1; height: 4px; border-radius: 999px; background: rgba(var(--text-rgb),0.12); position: relative; overflow: hidden; }
+  .pipe-seg::after{
+    content: ""; position: absolute; inset: 0; background: var(--burgundy);
+    transform: scaleX(0); transform-origin: left; transition: transform 0.35s ease;
+  }
+  .pipe.open .pipe-seg::after{ transform: scaleX(1); transition-delay: calc(0.15s + var(--i) * 0.12s); }
+
+  .pipe-list{ list-style: none; margin: 0; padding: 0; position: relative; }
+  .pipe-step{ display: flex; gap: 16px; position: relative; padding-bottom: 18px;
+    opacity: 0; transform: translateY(8px); transition: opacity 0.4s ease, transform 0.4s ease; }
+  .pipe-step:last-child{ padding-bottom: 0; }
+  .pipe.open .pipe-step{ opacity: 1; transform: none; }
+  .pipe.open .pipe-step:nth-child(1){ transition-delay: 0.10s; }
+  .pipe.open .pipe-step:nth-child(2){ transition-delay: 0.18s; }
+  .pipe.open .pipe-step:nth-child(3){ transition-delay: 0.26s; }
+  .pipe.open .pipe-step:nth-child(4){ transition-delay: 0.34s; }
+  .pipe.open .pipe-step:nth-child(5){ transition-delay: 0.42s; }
+  /* вертикальная линия между кружками */
+  .pipe-step:not(:last-child)::before{
+    content: ""; position: absolute; left: 15px; top: 32px; bottom: 2px; width: 1px;
+    background: rgba(var(--burgundy-rgb),0.35);
+  }
+  .pipe-dot{
+    flex-shrink: 0; width: 31px; height: 31px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Bitter', serif; font-size: 12px; font-weight: 600;
+    color: var(--burgundy); border: 1px solid rgba(var(--burgundy-rgb),0.45); background: var(--bg);
+  }
+  .pipe-start .pipe-dot{ background: var(--burgundy); color: var(--bg); border-color: var(--burgundy); }
+  .pipe-body{ display: flex; flex-direction: column; gap: 3px; padding-top: 5px; min-width: 0; }
+  .pipe-name{ font-weight: 600; font-size: 15px; color: var(--text); }
+  .pipe-desc{ font-size: 14px; line-height: 1.5; color: var(--text-muted); }
+
+
+  .pipe-result{ font-size: 13.5px; line-height: 1.45; color: var(--text); margin-top: 4px; }
+  .pipe-result b{ font-weight: 600; color: var(--accent-text); }
+  .pipe.open .pipe-step:nth-child(6){ transition-delay: 0.50s; }
+
+  .pipe-chips{ display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 4px; }
+  .pipe-chip{
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12.5px; line-height: 1.25; color: var(--text-muted); max-width: 100%;
+    padding: 5px 10px; border: 1px solid var(--border); border-radius: 999px; background: rgba(var(--bg-rgb),0.5);
+  }
+  .pipe-chip svg{ width: 13px; height: 13px; flex-shrink: 0; }
+  .pipe-chip-owner{ color: var(--text); border-color: rgba(var(--burgundy-rgb),0.35); }
+  .pipe-chip-owner svg{ color: var(--burgundy); }
+  .pipe-total{
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 22px;
+    opacity: 0; transform: translateY(6px); transition: opacity 0.4s ease 0.1s, transform 0.4s ease 0.1s;
+  }
+  .pipe.open .pipe-total{ opacity: 1; transform: none; }
+  .pipe-total-item{
+    display: flex; gap: 12px; align-items: flex-start;
+    padding: 14px 16px; border-radius: 12px; background: rgba(var(--bg-rgb),0.6); border: 1px solid var(--border);
+  }
+  .pipe-total-ico{ color: var(--burgundy); padding-top: 3px; }
+  .pipe-total-ico svg{ width: 20px; height: 20px; display: block; }
+  .pipe-total-num{ display: block; font-family: 'Bitter', serif; font-weight: 600; font-size: 22px; line-height: 1.15; color: var(--text); font-variant-numeric: tabular-nums; }
+  .pipe-total-label{ display: block; font-size: 12.5px; color: var(--text-muted); margin-top: 3px; line-height: 1.35; }
+  .pipe .pipe-note{ margin-top: 18px; font-size: 12px; line-height: 1.5; color: var(--text-muted); }
+  @media (max-width: 760px){
+    .pipe-total{ grid-template-columns: 1fr; gap: 8px; }
+    .pipe-total-num{ font-size: 20px; }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .pipe-collapse, .pipe-step, .pipe-total, .pipe-seg::after, .plus svg{ transition: none !important; }
+  }
+  @media (max-width: 760px){
+    .pipe-btn{ padding: 13px 12px 13px 16px; gap: 10px; }
+    .pipe-title{ font-size: 15px; }
+    .pipe-inner{ padding: 0 16px; }
+    .pipe.open .pipe-inner{ padding-bottom: 16px; }
+  }
+  /* мокап: только раздел, без hero */
+  body{ min-height: 100vh; }
+  #clients{ padding-top: 120px; }
+</style>
+<style>
+  /* ================= Вариант В: пайплайн отдельной полосой под двумя колонками ================= */
+  .flow{
+    margin-top: 64px; padding: 32px 32px 26px;
+    border: 1px solid var(--border); border-radius: 18px;
+    background: rgba(var(--bg-alt-rgb),0.45);
+    opacity: 0; transform: translateY(16px); transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+  .flow.in{ opacity: 1; transform: none; }
+  .flow[hidden]{ display: none !important; }
+  .flow-head{ display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap; margin-bottom: 34px; }
+  .flow-eyebrow{ display: block; font-size: 13px; color: var(--accent-text); margin-bottom: 6px; }
+  .flow-title{ font-family: 'Bitter', serif; font-size: clamp(24px, 3vw, 30px); line-height: 1.15; margin: 0; }
+  .flow-totals{ display: flex; gap: 12px; flex-wrap: wrap; }
+  .flow-total{ display: flex; gap: 10px; align-items: flex-start; padding: 12px 16px; border: 1px solid var(--border); border-radius: 12px; background: rgba(var(--bg-rgb),0.6); }
+  .flow-total-ico{ color: var(--burgundy); padding-top: 2px; }
+  .flow-total-ico svg{ width: 18px; height: 18px; display: block; }
+  .flow-total-num{ display: block; font-family: 'Bitter', serif; font-weight: 600; font-size: 20px; line-height: 1.15; font-variant-numeric: tabular-nums; }
+  .flow-total-label{ display: block; font-size: 12.5px; color: var(--text-muted); margin-top: 2px; }
+
+  /* горизонтальная линия из 6 шагов */
+  .flow-track{ position: relative; }
+  .flow-line{ position: absolute; left: calc(100% / 12); right: calc(100% / 12); top: 17px; height: 2px; background: rgba(var(--text-rgb),0.12); border-radius: 2px; }
+  .flow-line-fill{ position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: var(--burgundy); border-radius: 2px; transition: width 0.5s cubic-bezier(.4,.2,.2,1); }
+  .flow-steps{ list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(6, minmax(0,1fr)); position: relative; }
+  .flow-node{
+    width: 100%; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center;
+    background: none; border: none; padding: 0 6px 6px; cursor: pointer; color: var(--text-muted); font-family: inherit;
+  }
+  .flow-step{ opacity: 0; transform: translateY(10px); transition: opacity 0.45s ease, transform 0.45s ease; transition-delay: calc(0.15s + var(--i) * 0.08s); }
+  .flow.in .flow-step{ opacity: 1; transform: none; }
+  .flow-dot{
+    width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-family: 'Bitter', serif; font-size: 13px; font-weight: 600;
+    color: var(--burgundy); background: var(--bg); border: 1px solid rgba(var(--burgundy-rgb),0.45);
+    transition: background 0.25s ease, color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
+  }
+  .flow-step.done .flow-dot{ background: linear-gradient(rgba(var(--burgundy-rgb),0.14), rgba(var(--burgundy-rgb),0.14)), var(--bg); }
+  .flow-step.active .flow-dot{ background: var(--burgundy); color: var(--bg); border-color: var(--burgundy); transform: scale(1.08); box-shadow: 0 0 0 6px rgba(var(--burgundy-rgb),0.12); }
+  .flow-name{ font-size: 14.5px; font-weight: 600; line-height: 1.25; color: var(--text); margin-top: 4px; }
+  .flow-meta{ display: flex; flex-direction: column; gap: 3px; font-size: 12px; line-height: 1.2; }
+  .flow-meta > span{ display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
+  .flow-meta svg{ width: 12px; height: 12px; }
+  .flow-meta-owner{ color: var(--text); }
+  .flow-meta-owner svg{ color: var(--burgundy); }
+  .flow-node:hover .flow-dot{ transform: scale(1.06); }
+  .flow-node:focus-visible{ outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 10px; }
+
+  /* карточка выбранного шага */
+  .flow-detail{
+    position: relative; margin-top: 26px; padding: 24px 26px; border-radius: 14px; border: 1px solid rgba(var(--burgundy-rgb),0.3);
+    background: rgba(var(--bg-rgb),0.65); overflow: hidden;
+  }
+  /* высота карточки плавно подстраивается под текст шага */
+  .flow-detail-body{ min-width: 0; transition: height 0.4s cubic-bezier(.4,.2,.2,1); }
+  .flow-detail-head{ padding-right: 150px; min-height: 36px; align-items: center; }
+  /* смена шага: текст выезжает с той стороны, куда листаем */
+  .flow-detail-in.from-r{ animation: flowFromR 0.42s cubic-bezier(.3,.7,.2,1) both; }
+  .flow-detail-in.from-l{ animation: flowFromL 0.42s cubic-bezier(.3,.7,.2,1) both; }
+  @keyframes flowFromR{ from{ opacity: 0; transform: translateX(36px); } to{ opacity: 1; transform: none; } }
+  @keyframes flowFromL{ from{ opacity: 0; transform: translateX(-36px); } to{ opacity: 1; transform: none; } }
+  .flow-step.active .flow-dot{ animation: dotPop 0.45s cubic-bezier(.3,1.6,.5,1); }
+  @keyframes dotPop{ 0%{ transform: scale(0.85); } 100%{ transform: scale(1.08); } }
+  .flow-detail-head{ display: flex; align-items: baseline; gap: 12px; margin-bottom: 10px; }
+  .flow-detail-num{ font-size: 13px; color: var(--accent-text); }
+  .flow-detail-name{ font-family: 'Bitter', serif; font-weight: 600; font-size: 20px; }
+  .flow-chips{ display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+  .flow-chip{ display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; line-height: 1.25; color: var(--text-muted); padding: 5px 10px; border: 1px solid var(--border); border-radius: 999px; }
+  .flow-chip svg{ width: 13px; height: 13px; flex-shrink: 0; }
+  .flow-chip-owner{ color: var(--text); border-color: rgba(var(--burgundy-rgb),0.35); }
+  .flow-chip-owner svg{ color: var(--burgundy); }
+  .flow .flow-desc{ font-size: 15px; line-height: 1.55; color: var(--text-muted); max-width: 62ch; margin: 0; }
+  .flow .flow-result{ font-size: 14.5px; line-height: 1.5; color: var(--text); max-width: 62ch; margin: 10px 0 0; }
+  .flow-result b{ font-weight: 600; color: var(--accent-text); }
+  .flow-nav{ position: absolute; top: 18px; right: 20px; z-index: 2; display: flex; align-items: center; gap: 10px; }
+  .flow-arrow{ width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--border); background: none; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .flow-arrow:hover:not(:disabled){ color: var(--burgundy); border-color: rgba(var(--burgundy-rgb),0.5); }
+  .flow-arrow:disabled{ opacity: 0.35; cursor: default; }
+  .flow-arrow svg{ width: 15px; height: 15px; }
+  .flow-count{ font-size: 13px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .flow-count b{ color: var(--text); font-weight: 600; }
+  .flow .flow-note{ margin: 18px 0 0; font-size: 12px; line-height: 1.5; color: var(--text-muted); }
+  .flow-cta{ margin-top: 22px; }
+  #clients.has-flow .clients-cta{ display: none; }
+  .flow-mobile-detail{ display: none; }
+
+  /* планшет: подписи шагов чуть компактнее */
+  @media (max-width: 1040px){
+    .flow{ padding: 26px 22px 22px; }
+    .flow-name{ font-size: 13.5px; }
+  }
+  /* телефон: линия из номеров, карточка шага листается стрелками и свайпом */
+  @media (max-width: 760px){
+    .flow{ margin-top: 44px; padding: 22px 16px 18px; border-radius: 14px; }
+    .flow-head{ margin-bottom: 22px; align-items: stretch; }
+    .flow-totals{ flex-direction: column; width: 100%; gap: 8px; }
+    .flow-name, .flow-meta{ display: none; }
+    .flow-node{ padding: 0; }
+    .flow-dot{ width: 32px; height: 32px; font-size: 12px; }
+    .flow-line{ top: 15px; }
+    .flow-detail{ margin-top: 18px; padding: 16px 16px 18px; touch-action: pan-y; }
+    .flow-nav{ position: static; justify-content: space-between; margin-bottom: 14px; }
+    .flow-detail-head{ padding-right: 0; min-height: 0; }
+    .flow-detail-name{ font-size: 18px; }
+    .flow .flow-desc{ font-size: 14px; }
+    .flow-cta .cta-btn{ width: 100%; }
+    .flow-mobile-detail{ display: none !important; }
+  }
+
+  /* ================= Переход «тяжело → легко» по шагам =================
+     Правила: цвета только из палитры сайта (бургунди → фирменный желтый / золото);
+     смешивание в OKLCH, чтобы середина шла через красный и оранжевый, без грязно-бронзовых тонов;
+     светлота растет монотонно от шага к шагу; цвет несет графика (линия, заливки, рамки),
+     цифры и подписи остаются контрастными (≥4.5:1 для текста, ≥3:1 для обводок). */
+  @property --cur-p{ syntax: '<percentage>'; inherits: true; initial-value: 0%; }
+  :root{
+    --flow-heavy: #7B1E3A;          /* бургунди сайта */
+    --flow-light: #F5DF4D;          /* желтый сайта (акцент светлой темы) */
+    --flow-ink: #1A1A1A;            /* текст сайта, для подмешивания в подписи */
+  }
+  :root[data-theme="dark"]{
+    --flow-heavy: #B04A68;          /* бургунди сайта, высветленный для темного фона */
+    --flow-light: #C9A227;          /* золото сайта (акцент темной темы) */
+    --flow-ink: #EDEAE2;
+  }
+  .flow{ --cur-p: 0%; transition: opacity 0.8s ease, transform 0.8s ease, --cur-p 0.5s ease; }
+  .flow-step{ --c: color-mix(in oklch, var(--flow-light) var(--p), var(--flow-heavy)); }
+  .flow{ --cur: color-mix(in oklch, var(--flow-light) var(--cur-p), var(--flow-heavy)); }
+
+  /* 1. линия */
+  .flow-line{ height: 3px; top: 16.5px; background: linear-gradient(90deg in oklch, color-mix(in srgb, var(--flow-heavy) 22%, transparent), color-mix(in srgb, var(--flow-light) 45%, transparent)); }
+  .flow-line-fill{
+    width: 100% !important;
+    background: linear-gradient(90deg, var(--flow-heavy), #B8452F, #E08A2E, var(--flow-light));
+    background: linear-gradient(90deg in oklch, var(--flow-heavy), var(--flow-light));
+    clip-path: inset(0 calc(100% - var(--fill, 0%)) 0 0 round 2px); transition: clip-path 0.5s cubic-bezier(.4,.2,.2,1);
+  }
+
+  /* 2. точки: заливка цветом шага, номер всегда контрастный */
+  .flow-dot{
+    color: color-mix(in oklch, var(--c) 55%, var(--flow-ink));
+    border-color: color-mix(in oklch, var(--c) 75%, var(--flow-ink));
+    background: linear-gradient(color-mix(in srgb, var(--c) 10%, transparent), color-mix(in srgb, var(--c) 10%, transparent)), var(--bg);
+  }
+  .flow-step.done .flow-dot{ background: linear-gradient(color-mix(in srgb, var(--c) 24%, transparent), color-mix(in srgb, var(--c) 24%, transparent)), var(--bg); }
+  .flow-step.active .flow-dot{ background: var(--c); border-color: var(--c); box-shadow: 0 0 0 6px color-mix(in srgb, var(--c) 22%, transparent); }
+  .flow-step.ink-light.active .flow-dot{ color: #F7F4EC; }
+  .flow-step.ink-dark.active .flow-dot{ color: #1A1A1A; }
+  .flow-meta-owner svg{ color: color-mix(in oklch, var(--c) 70%, var(--flow-ink)); }
+
+  /* 3. карточка шага */
+  .flow-detail{
+    border-color: color-mix(in oklch, var(--cur) 70%, var(--flow-ink) 0%);
+    border-color: color-mix(in srgb, var(--cur) 55%, transparent);
+    background: linear-gradient(color-mix(in srgb, var(--cur) 9%, transparent), color-mix(in srgb, var(--cur) 9%, transparent)), rgba(var(--bg-rgb),0.65);
+  }
+  .flow-detail-num{ color: color-mix(in oklch, var(--cur) 60%, var(--flow-ink)); }
+  .flow-detail .flow-chip-owner{ border-color: color-mix(in srgb, var(--cur) 60%, transparent); }
+  .flow-detail .flow-chip-owner svg{ color: color-mix(in oklch, var(--cur) 70%, var(--flow-ink)); }
+  .flow-arrow:hover:not(:disabled){ color: color-mix(in oklch, var(--cur) 60%, var(--flow-ink)); border-color: color-mix(in srgb, var(--cur) 70%, transparent); }
+  /* светлая тема: желтый конец шкалы светлый, поэтому цифрам и обводкам добавляем больше текста сайта */
+  :root:not([data-theme="dark"]) .flow-dot{ color: color-mix(in oklch, var(--c) 40%, var(--flow-ink)); border-color: color-mix(in oklch, var(--c) 55%, var(--flow-ink)); }
+  :root:not([data-theme="dark"]) .flow-detail-num{ color: color-mix(in oklch, var(--cur) 45%, var(--flow-ink)); }
+
+  /* ---------- заглушки «Скоро» в том же стиле ---------- */
+  #flow2 .flow-track{ display: none; }
+  .flow-soon .flow-head{ margin-bottom: 30px; }
+  .soon-badge{ font-size: 12.5px; color: var(--text-muted); padding: 6px 12px; border: 1px dashed var(--border); border-radius: 999px; }
+  .flow.flow-soon .flow-dot{ border-style: dashed; background: var(--bg); color: var(--text-muted); border-color: var(--border); }
+  .flow-soon .flow-line-fill{ display: none; }
+  .flow-soon .flow-line{ background: repeating-linear-gradient(90deg, var(--border) 0 6px, transparent 6px 12px); height: 2px; }
+  .flow-soon .flow-node{ cursor: default; padding-bottom: 0; }
+  .soon-body{ margin-top: 26px; padding: 22px 26px; border: 1px dashed var(--border); border-radius: 14px; background: rgba(var(--bg-rgb),0.5); }
+  .flow .soon-text{ margin: 0; font-size: 15px; line-height: 1.55; color: var(--text-muted); max-width: 62ch; }
+  .flow .soon-sub{ margin-top: 8px; color: var(--text); }
+  /* пульс точек, чтобы заглушка не выглядела мертвой */
+  .flow-soon.in .flow-dot{ animation: soonPulse 2.4s ease-in-out infinite; animation-delay: calc(var(--i) * 0.2s); }
+  @keyframes soonPulse{ 0%,100%{ opacity: 0.55; } 50%{ opacity: 1; } }
+  @media (max-width: 760px){
+    .flow-soon .flow-head{ flex-direction: row; align-items: center; }
+    .soon-body{ padding: 16px; }
+  }
+
+  /* ---------- появление как на всем сайте: 0.8s, сдвиг 18px ---------- */
+  .flow{ opacity: 0; transform: translateY(18px); }
+  .flow.in{ opacity: 1; transform: none; }
+  .flow.swap{ animation: philoFadeIn 0.45s ease; }
+  @media (prefers-reduced-motion: reduce){ .flow{ opacity: 1; transform: none; } .flow.swap, .flow-soon.in .flow-dot{ animation: none; } }
+
+  /* ================= Свернутое состояние пайплайна ================= */
+  .flow.has-steps{
+    display: grid; grid-template-columns: minmax(0,1fr) auto;
+    grid-template-areas: "title totals" "track track" "detail detail" "note note" "cta less";
+  }  .flow.has-steps .flow-head{ display: contents; }
+  .flow.has-steps .flow-titles{ grid-area: title; align-self: center; margin-bottom: 34px; }
+  .flow.has-steps .flow-totals{ grid-area: totals; justify-self: end; align-self: center; margin-bottom: 34px; }
+  .flow.has-steps .flow-track{ grid-area: track; }
+  .flow.has-steps .flow-detail{ grid-area: detail; }
+  .flow.has-steps .flow-note{ grid-area: note; }
+  .flow.has-steps .flow-cta{ grid-area: cta; }
+  .flow-less{ grid-area: less; justify-self: end; align-self: end; }
+  .flow-more{ grid-area: btn; display: none; }
+  .flow-more, .flow-less{
+    display: inline-flex; align-items: center; gap: 8px; white-space: nowrap;
+    font-family: inherit; font-size: 14px; font-weight: 500; color: var(--text);
+    background: none; border: 1px solid var(--border); border-radius: 999px; padding: 10px 16px; cursor: pointer;
+    transition: border-color 0.2s ease, color 0.2s ease;
+  }
+  .flow-less{ border-color: transparent; color: var(--text-muted); padding: 10px 4px; }
+  .flow-more:hover, .flow-less:hover{ color: var(--burgundy); border-color: rgba(var(--burgundy-rgb),0.45); }
+  .flow-less:hover{ border-color: transparent; }
+  .flow-more svg, .flow-less svg{ width: 15px; height: 15px; }
+  .flow-less .flip{ display: inline-flex; transform: rotate(180deg); }
+  .flow-more:focus-visible, .flow-less:focus-visible{ outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* свернуто: заголовок и итоги в первой строке, мини-линия и кнопка во второй */
+  .flow.has-steps.collapsed{ grid-template-columns: minmax(0,1fr) auto auto; grid-template-areas: "title totals totals" "track track btn"; column-gap: 28px; padding-bottom: 26px; }
+  .flow.has-steps:not(.collapsed) .flow-more{ display: none; }
+  .flow.collapsed .flow-more{ justify-self: end; }
+  .flow.collapsed .flow-titles, .flow.collapsed .flow-totals{ margin-bottom: 22px; }
+  .flow.collapsed .flow-more{ display: inline-flex; align-self: center; }
+  .flow.collapsed .flow-detail, .flow.collapsed .flow-note, .flow.collapsed .flow-cta, .flow.collapsed .flow-less{ display: none; }
+  .flow.collapsed .flow-name, .flow.collapsed .flow-meta{ display: none; }
+  .flow.collapsed .flow-node{ padding-bottom: 0; }
+  .flow.collapsed .flow-dot{ width: 30px; height: 30px; font-size: 12px; }
+  .flow.collapsed .flow-line{ top: 13.5px; }
+  .flow.collapsed .flow-total{ padding: 9px 14px; }
+  .flow.collapsed .flow-total-num{ font-size: 17px; }
+  .flow.collapsed .flow-total-label{ font-size: 12px; }
+  .flow.collapsed .flow-title{ font-size: clamp(22px, 2.6vw, 26px); }
+  /* при раскрытии содержимое всплывает как остальной сайт */
+  .flow.has-steps:not(.collapsed).just-opened .flow-detail,
+  .flow.has-steps:not(.collapsed).just-opened .flow-name,
+  .flow.has-steps:not(.collapsed).just-opened .flow-meta,
+  .flow.has-steps:not(.collapsed).just-opened .flow-note,
+  .flow.has-steps:not(.collapsed).just-opened .flow-cta{ animation: philoFadeIn 0.45s ease both; }
+  .flow.has-steps:not(.collapsed).just-opened .flow-detail{ animation-delay: 0.08s; }
+
+  @media (max-width: 760px){
+    .flow.has-steps{ grid-template-columns: minmax(0,1fr); grid-template-areas: "title" "totals" "track" "detail" "note" "cta" "less"; }
+    .flow.has-steps.collapsed{ grid-template-columns: minmax(0,1fr); grid-template-areas: "title" "totals" "track" "btn"; }
+    .flow.has-steps .flow-titles{ margin-bottom: 16px; }
+    .flow.has-steps .flow-totals{ justify-self: stretch; margin-bottom: 22px; }
+    .flow.collapsed .flow-more{ justify-self: stretch; justify-content: center; margin-top: 18px; }
+    .flow-less{ justify-self: center; margin-top: 8px; }
+    .flow.collapsed .flow-dot{ width: 28px; height: 28px; }
+    .flow.collapsed .flow-line{ top: 12.5px; }
+  }
+  @media (prefers-reduced-motion: reduce){ .flow.just-opened *{ animation: none !important; } }
+  @media (prefers-reduced-motion: reduce){ .flow-line-fill{ transition: none; } }
+  @media (prefers-reduced-motion: reduce){
+    .flow, .flow-step, .flow-line-fill, .flow-dot{ transition: none !important; }
+    .flow-detail-in, .flow-detail-in.from-r, .flow-detail-in.from-l, .flow-step.active .flow-dot{ animation: none; }
+    .flow-detail-body{ transition: none; }
+  }
+</style>
+<style>
+#clients .client-tab[hidden], #clients .client-panel[hidden], #clients .flow[hidden] { display:none !important; }
+</style>
 </head>
 <body>
 
@@ -1341,13 +1698,13 @@
         </button>
         <button class="client-tab" data-tab="2">
           <span class="num">03</span>
-          <span class="label">Продукт пылится без дела</span>
-        </button>
-        <button class="client-tab" data-tab="3">
-          <span class="num">04</span>
           <span class="label">Уперся в потолок</span>
         </button>
-        <button class="client-tab" data-tab="4">
+        <button class="client-tab" data-tab="3" hidden aria-hidden="true" tabindex="-1">
+          <span class="num">04</span>
+          <span class="label">Продукт пылится без дела</span>
+        </button>
+        <button class="client-tab" data-tab="4" hidden aria-hidden="true" tabindex="-1">
           <span class="num">05</span>
           <span class="label">Деньги есть, команды нет</span>
         </button>
@@ -1358,7 +1715,7 @@
           <h3>На тебе держится весь бизнес. Так и было задумано?</h3>
           <p>Бизнес прибыльный и работающий, но почти каждое решение, согласование и контроль до сих пор проходят через тебя. Команда уже выросла до 5-20-100 человек, а свободного времени становится все меньше.</p>
           <p>Рост компании упирается не в рынок, а в твою личную пропускную способность. Ты выгораешь, начинается текучка, случаются кассовые разрывы, а прибыль перестает расти, хотя выручка есть.</p>
-          <div class="solution"><span class="solution-mark">→</span>Найду процессы, которые не должны требовать твоего участия, распределю ответственность и выстрою систему делегирования. Проведу аудит бизнес-процессов, а финансист посмотрит текущие финансовые показатели. Времени тратишь меньше, зарабатываешь столько же.</div>
+          <div class="solution"><span class="solution-mark">→</span>Найду процессы, которые не должны требовать твоего участия, распределю ответственность и выстрою систему делегирования. Проведу аудит бизнес-процессов и финансовый аудит, который показывает реальную картину P&amp;L. Времени тратишь меньше, зарабатываешь столько же.</div>
         </div>
 
         <div class="client-panel" data-panel="1">
@@ -1369,17 +1726,16 @@
         </div>
 
         <div class="client-panel" data-panel="2">
-          <h3>Есть внутренний продукт, который пора выводить на внешний рынок? Почему он до сих пор пылится?</h3>
-          <p>Бизнес растет, все работает, но внутри родился продукт, процесс или методология с потенциалом на внешнем рынке. Времени и фокуса заняться этим самому у тебя нет.</p>
-          <p>Продукт существует, но никто не проверил, нужен ли он рынку за пределами компании. У тебя нет команды под задачу и нет экспертизы в выводе нового направления, а рисковать основным бизнесом ради эксперимента не хочется.</p>
-          <div class="solution"><span class="solution-mark">→</span>Соберу стратегию и роадмап теста гипотезы, изучу рынок и целевую аудиторию, соберу команду под задачу. Доведу тест от идеи до объективного результата: гипотеза либо подтверждается и продукт масштабируется, либо закрывается быстро и дешево.</div>
-        </div>
-
-        <div class="client-panel" data-panel="3">
           <h3>Бизнес уперся в потолок, и непонятно, куда двигаться дальше?</h3>
           <p>Компания вышла на плато. Раньше росла быстро, а теперь непонятно, куда двигаться дальше и что менять, чтобы снова начать расти.</p>
           <p>Нет стратегии и целей, а старые подходы к управлению перестали работать. Ты чувствуешь потолок, будь то потолок навыков, команды или рынка, и все больше зависишь от нескольких ключевых сотрудников.</p>
           <div class="solution"><span class="solution-mark">→</span>Разработаю стратегию и соберу ее в дорожную карту, поставлю цели через OKR и проконтролирую их выполнение. Проведу стратегические сессии, опишу процессы под новый масштаб. Ты получаешь понятный путь на следующий этап, а не очередную презентацию с красивыми словами.</div>
+        </div>
+        <div class="client-panel" data-panel="3">
+          <h3>Есть внутренний продукт, который пора выводить на внешний рынок? Почему он до сих пор пылится?</h3>
+          <p>Бизнес растет, все работает, но внутри родился продукт, процесс или методология с потенциалом на внешнем рынке. Времени и фокуса заняться этим самому у тебя нет.</p>
+          <p>Продукт существует, но никто не проверил, нужен ли он рынку за пределами компании. У тебя нет команды под задачу и нет экспертизы в выводе нового направления, а рисковать основным бизнесом ради эксперимента не хочется.</p>
+          <div class="solution"><span class="solution-mark">→</span>Соберу стратегию и роадмап теста гипотезы, изучу рынок и целевую аудиторию, соберу команду под задачу. Доведу тест от идеи до объективного результата: гипотеза либо подтверждается и продукт масштабируется, либо закрывается быстро и дешево.</div>
         </div>
 
         <div class="client-panel" data-panel="4">
@@ -1394,6 +1750,269 @@
         </div>
       </div>
     </div>
+
+    <div class="flow has-steps collapsed" data-flow="0" id="flow0" hidden>
+      <div class="flow-head">
+        <div class="flow-titles"><h3 class="flow-title">Гора с плеч</h3></div>
+        <div class="flow-totals">
+          <div class="flow-total"><span class="flow-total-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg></span><div><span class="flow-total-num">11–14 недель</span><span class="flow-total-label">срок проекта 2,5–3,5 месяца</span></div></div>
+          <div class="flow-total"><span class="flow-total-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M5 20c.8-3.6 3.6-5.5 7-5.5s6.2 1.9 7 5.5"/></svg></span><div><span class="flow-total-num">19–21 час</span><span class="flow-total-label">твоего времени за весь проект</span></div></div>
+        </div>
+      </div>
+
+      <div class="flow-track">
+        <div class="flow-line" aria-hidden="true"><span class="flow-line-fill"></span></div>
+        <ol class="flow-steps">
+          <li class="flow-step active ink-light" style="--i:0; --p:0%">
+            <button class="flow-node" type="button" data-step="0" aria-pressed="true">
+              <span class="flow-dot">01</span>
+              <span class="flow-name">Постановка цели</span>
+              <span class="flow-meta"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>1–2 дня</span><span class="flow-meta-owner"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M5 20c.8-3.6 3.6-5.5 7-5.5s6.2 1.9 7 5.5"/></svg>2 ч</span></span>
+            </button>
+          </li>
+          <li class="flow-step ink-light" style="--i:1; --p:20%">
+            <button class="flow-node" type="button" data-step="1" aria-pressed="false">
+              <span class="flow-dot">02</span>
+              <span class="flow-name">Аудит</span>
+              <span class="flow-meta"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>1,5–2 нед.</span><span class="flow-meta-owner"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M5 20c.8-3.6 3.6-5.5 7-5.5s6.2 1.9 7 5.5"/></svg>4–5 ч</span></span>
+            </button>
+          </li>
+          <li class="flow-step ink-dark" style="--i:2; --p:40%">
+            <button class="flow-node" type="button" data-step="2" aria-pressed="false">
+              <span class="flow-dot">03</span>
+              <span class="flow-name">Приоритизация</span>
+              <span class="flow-meta"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>1–1,5 нед.</span><span class="flow-meta-owner"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M5 20c.8-3.6 3.6-5.5 7-5.5s6.2 1.9 7 5.5"/></svg>2–3 ч</span></span>
+            </button>
+          </li>
+          <li class="flow-step ink-dark" style="--i:3; --p:60%">
+            <button class="flow-node" type="button" data-step="3" aria-pressed="false">
+              <span class="flow-dot">04</span>
+              <span class="flow-name">Интеграция</span>
+              <span class="flow-meta"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>4–5 нед.</span><span class="flow-meta-owner"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M5 20c.8-3.6 3.6-5.5 7-5.5s6.2 1.9 7 5.5"/></svg>5 ч</span></span>
+            </button>
+          </li>
+          <li class="flow-step ink-dark" style="--i:4; --p:80%">
+            <button class="flow-node" type="button" data-step="4" aria-pressed="false">
+              <span class="flow-dot">05</span>
+              <span class="flow-name">Тестирование</span>
+              <span class="flow-meta"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>2–3 нед.</span><span class="flow-meta-owner"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M5 20c.8-3.6 3.6-5.5 7-5.5s6.2 1.9 7 5.5"/></svg>3 ч</span></span>
+            </button>
+          </li>
+          <li class="flow-step ink-dark" style="--i:5; --p:100%">
+            <button class="flow-node" type="button" data-step="5" aria-pressed="false">
+              <span class="flow-dot">06</span>
+              <span class="flow-name">Финал</span>
+              <span class="flow-meta"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>2 нед. +</span><span class="flow-meta-owner"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M5 20c.8-3.6 3.6-5.5 7-5.5s6.2 1.9 7 5.5"/></svg>3 ч</span></span>
+            </button>
+          </li>
+        </ol>
+      </div>
+
+      <button class="flow-more" type="button" aria-expanded="false">Смотреть шаги <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+      <div class="flow-detail">
+        <div class="flow-nav">
+          <button class="flow-arrow" type="button" data-dir="-1" aria-label="Предыдущий шаг"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></button>
+          <span class="flow-count"><b>01</b> / 06</span>
+          <button class="flow-arrow" type="button" data-dir="1" aria-label="Следующий шаг"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        </div>
+        <div class="flow-detail-body" aria-live="polite"><div class="flow-detail-in">
+                <div class="flow-detail-head"><span class="flow-detail-num">Шаг 01</span><span class="flow-detail-name">Постановка цели</span></div>
+                <div class="flow-chips"><span class="flow-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>1–2 рабочих дня</span><span class="flow-chip flow-chip-owner"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M5 20c.8-3.6 3.6-5.5 7-5.5s6.2 1.9 7 5.5"/></svg>2 ч твоего времени</span></div>
+                <p class="flow-desc">Фиксируем, сколько часов в неделю ты тратишь на текущие задачи бизнеса и сколько хочешь.</p>
+                <p class="flow-result"><b>Результат:</b> измеримая цель и точка А</p>
+              </div></div>
+      </div>
+      <template data-detail="0"><div class="flow-detail-in">
+                <div class="flow-detail-head"><span class="flow-detail-num">Шаг 01</span><span class="flow-detail-name">Постановка цели</span></div>
+                <div class="flow-chips"><span class="flow-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>1–2 рабочих дня</span><span class="flow-chip flow-chip-owner"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M5 20c.8-3.6 3.6-5.5 7-5.5s6.2 1.9 7 5.5"/></svg>2 ч твоего времени</span></div>
+                <p class="flow-desc">Фиксируем, сколько часов в неделю ты тратишь на текущие задачи бизнеса и сколько хочешь.</p>
+                <p class="flow-result"><b>Результат:</b> измеримая цель и точка А</p>
+              </div></template><template data-detail="1"><div class="flow-detail-in">
+                <div class="flow-detail-head"><span class="flow-detail-num">Шаг 02</span><span class="flow-detail-name">Аудит</span></div>
+                <div class="flow-chips"><span class="flow-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>1,5–2 рабочие недели</span><span class="flow-chip flow-chip-owner"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M5 20c.8-3.6 3.6-5.5 7-5.5s6.2 1.9 7 5.5"/></svg>4–5 ч твоего времени</span></div>
+                <p class="flow-desc">Составляем карту текущих процессов, ресурсов и ищем узкие места. Сверяем цель с реальными данными P&amp;L и ДДС, чтобы отследить, как изменения скажутся на выручке.</p>
+                <p class="flow-result"><b>Результат:</b> карта процессов, финансовая картина и подтвержденная цель</p>
+              </div></template><template data-detail="2"><div class="flow-detail-in">
+                <div class="flow-detail-head"><span class="flow-detail-num">Шаг 03</span><span class="flow-detail-name">Приоритизация</span></div>
+                <div class="flow-chips"><span class="flow-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>1–1,5 недели</span><span class="flow-chip flow-chip-owner"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M5 20c.8-3.6 3.6-5.5 7-5.5s6.2 1.9 7 5.5"/></svg>2–3 ч твоего времени</span></div>
+                <p class="flow-desc">Разбираемся, кому что можно делегировать. Составляем план передачи ответственности без потери качества и бюджета.</p>
+                <p class="flow-result"><b>Результат:</b> описания процессов и роли</p>
+              </div></template><template data-detail="3"><div class="flow-detail-in">
+                <div class="flow-detail-head"><span class="flow-detail-num">Шаг 04</span><span class="flow-detail-name">Интеграция</span></div>
+                <div class="flow-chips"><span class="flow-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>4–5 недель</span><span class="flow-chip flow-chip-owner"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M5 20c.8-3.6 3.6-5.5 7-5.5s6.2 1.9 7 5.5"/></svg>5 ч твоего времени, по часу в неделю</span></div>
+                <p class="flow-desc">Передаем процессы команде, обучаем, контролируем и адаптируем задачи.</p>
+                <p class="flow-result"><b>Результат:</b> процессы переданы команде, реализованы контроль и наставничество и внедрена система отчетности</p>
+              </div></template><template data-detail="4"><div class="flow-detail-in">
+                <div class="flow-detail-head"><span class="flow-detail-num">Шаг 05</span><span class="flow-detail-name">Тестирование</span></div>
+                <div class="flow-chips"><span class="flow-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>2–3 недели</span><span class="flow-chip flow-chip-owner"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M5 20c.8-3.6 3.6-5.5 7-5.5s6.2 1.9 7 5.5"/></svg>3 ч твоего времени</span></div>
+                <p class="flow-desc">Ты отключаешься от отобранных процессов, бизнес работает, я сохраняю контроль и чиню все, что сломалось.</p>
+                <p class="flow-result"><b>Результат:</b> отладка, автономность, твое спокойствие</p>
+              </div></template><template data-detail="5"><div class="flow-detail-in">
+                <div class="flow-detail-head"><span class="flow-detail-num">Шаг 06</span><span class="flow-detail-name">Финал</span></div>
+                <div class="flow-chips"><span class="flow-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>2 недели + поддержка по договоренности</span><span class="flow-chip flow-chip-owner"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M5 20c.8-3.6 3.6-5.5 7-5.5s6.2 1.9 7 5.5"/></svg>3 ч твоего времени</span></div>
+                <p class="flow-desc">Делаем финальный замер по целям, установленным в шаге 2, две недели поддержки и два раунда правок. Я выхожу из проекта, а ты переходишь на стратегические задачи.</p>
+                <p class="flow-result"><b>Результат:</b> поздравляю, ты вышел из операционки, а система не замкнута на мне, цели, утвержденные в шаге 2, достигнуты</p>
+              </div></template>
+      <p class="flow-note">* Каждый проект индивидуален, сроки могут сдвигаться как в меньшую, так и в большую сторону.</p>
+      <div class="flow-cta"><button class="cta-btn" data-contact-open>Обсудить мою задачу <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div>
+      <button class="flow-less" type="button">Свернуть шаги <span class="flip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span></button>
+    </div>
+
+    <div class="flow has-steps collapsed" data-flow="1" id="flow1" hidden>
+      <div class="flow-head">
+        <div class="flow-titles"><h3 class="flow-title">Расправь плечи</h3></div>
+        <div class="flow-totals">
+          <div class="flow-total"><span class="flow-total-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg></span><div><span class="flow-total-num">14–19 недель</span><span class="flow-total-label">срок проекта 3–4,5 месяца</span></div></div>
+          <div class="flow-total"><span class="flow-total-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M5 20c.8-3.6 3.6-5.5 7-5.5s6.2 1.9 7 5.5"/></svg></span><div><span class="flow-total-num">21–28 часов</span><span class="flow-total-label">твоего времени за весь проект</span></div></div>
+        </div>
+      </div>
+
+      <div class="flow-track">
+        <div class="flow-line" aria-hidden="true"><span class="flow-line-fill"></span></div>
+        <ol class="flow-steps">
+          <li class="flow-step active ink-light" style="--i:0; --p:0%">
+            <button class="flow-node" type="button" data-step="0" aria-pressed="true">
+              <span class="flow-dot">01</span>
+              <span class="flow-name">Целеполагание</span>
+              <span class="flow-meta"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>2–3 дня</span><span class="flow-meta-owner"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M5 20c.8-3.6 3.6-5.5 7-5.5s6.2 1.9 7 5.5"/></svg>2–3 ч</span></span>
+            </button>
+          </li>
+          <li class="flow-step ink-light" style="--i:1; --p:20%">
+            <button class="flow-node" type="button" data-step="1" aria-pressed="false">
+              <span class="flow-dot">02</span>
+              <span class="flow-name">Аудит</span>
+              <span class="flow-meta"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>2 нед.</span><span class="flow-meta-owner"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M5 20c.8-3.6 3.6-5.5 7-5.5s6.2 1.9 7 5.5"/></svg>3–4 ч</span></span>
+            </button>
+          </li>
+          <li class="flow-step ink-dark" style="--i:2; --p:40%">
+            <button class="flow-node" type="button" data-step="2" aria-pressed="false">
+              <span class="flow-dot">03</span>
+              <span class="flow-name">Приоритизация</span>
+              <span class="flow-meta"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>2–2,5 нед.</span><span class="flow-meta-owner"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M5 20c.8-3.6 3.6-5.5 7-5.5s6.2 1.9 7 5.5"/></svg>2–3 ч</span></span>
+            </button>
+          </li>
+          <li class="flow-step ink-dark" style="--i:3; --p:60%">
+            <button class="flow-node" type="button" data-step="3" aria-pressed="false">
+              <span class="flow-dot">04</span>
+              <span class="flow-name">Интеграция</span>
+              <span class="flow-meta"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>4–6 нед.</span><span class="flow-meta-owner"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M5 20c.8-3.6 3.6-5.5 7-5.5s6.2 1.9 7 5.5"/></svg>7–9 ч</span></span>
+            </button>
+          </li>
+          <li class="flow-step ink-dark" style="--i:4; --p:80%">
+            <button class="flow-node" type="button" data-step="4" aria-pressed="false">
+              <span class="flow-dot">05</span>
+              <span class="flow-name">Тестирование</span>
+              <span class="flow-meta"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>4–6 нед.</span><span class="flow-meta-owner"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M5 20c.8-3.6 3.6-5.5 7-5.5s6.2 1.9 7 5.5"/></svg>4–6 ч</span></span>
+            </button>
+          </li>
+          <li class="flow-step ink-dark" style="--i:5; --p:100%">
+            <button class="flow-node" type="button" data-step="5" aria-pressed="false">
+              <span class="flow-dot">06</span>
+              <span class="flow-name">Финал</span>
+              <span class="flow-meta"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>1,5–2 нед.</span><span class="flow-meta-owner"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M5 20c.8-3.6 3.6-5.5 7-5.5s6.2 1.9 7 5.5"/></svg>3 ч</span></span>
+            </button>
+          </li>
+        </ol>
+      </div>
+
+      <button class="flow-more" type="button" aria-expanded="false">Смотреть шаги <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+      <div class="flow-detail">
+        <div class="flow-nav">
+          <button class="flow-arrow" type="button" data-dir="-1" aria-label="Предыдущий шаг"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></button>
+          <span class="flow-count"><b>01</b> / 06</span>
+          <button class="flow-arrow" type="button" data-dir="1" aria-label="Следующий шаг"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        </div>
+        <div class="flow-detail-body" aria-live="polite"><div class="flow-detail-in">
+                <div class="flow-detail-head"><span class="flow-detail-num">Шаг 01</span><span class="flow-detail-name">Целеполагание</span></div>
+                <div class="flow-chips"><span class="flow-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>2–3 рабочих дня</span><span class="flow-chip flow-chip-owner"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M5 20c.8-3.6 3.6-5.5 7-5.5s6.2 1.9 7 5.5"/></svg>2–3 ч твоего времени</span></div>
+                <p class="flow-desc">Определяем этап развития компании, что сейчас мешает и чего ты ожидаешь от изменений.</p>
+                <p class="flow-result"><b>Результат:</b> измеримая цель и точка А</p>
+              </div></div>
+      </div>
+      <template data-detail="0"><div class="flow-detail-in">
+                <div class="flow-detail-head"><span class="flow-detail-num">Шаг 01</span><span class="flow-detail-name">Целеполагание</span></div>
+                <div class="flow-chips"><span class="flow-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>2–3 рабочих дня</span><span class="flow-chip flow-chip-owner"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M5 20c.8-3.6 3.6-5.5 7-5.5s6.2 1.9 7 5.5"/></svg>2–3 ч твоего времени</span></div>
+                <p class="flow-desc">Определяем этап развития компании, что сейчас мешает и чего ты ожидаешь от изменений.</p>
+                <p class="flow-result"><b>Результат:</b> измеримая цель и точка А</p>
+              </div></template><template data-detail="1"><div class="flow-detail-in">
+                <div class="flow-detail-head"><span class="flow-detail-num">Шаг 02</span><span class="flow-detail-name">Аудит</span></div>
+                <div class="flow-chips"><span class="flow-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>2 недели</span><span class="flow-chip flow-chip-owner"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M5 20c.8-3.6 3.6-5.5 7-5.5s6.2 1.9 7 5.5"/></svg>3–4 ч твоего времени</span></div>
+                <p class="flow-desc">Собираем карту процессов как есть, находим узкие места, сверяем цели с P&amp;L и ДДС.</p>
+                <p class="flow-result"><b>Результат:</b> карта процессов, карта узких мест и подтвержденные цели</p>
+              </div></template><template data-detail="2"><div class="flow-detail-in">
+                <div class="flow-detail-head"><span class="flow-detail-num">Шаг 03</span><span class="flow-detail-name">Приоритизация</span></div>
+                <div class="flow-chips"><span class="flow-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>2–2,5 недели</span><span class="flow-chip flow-chip-owner"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M5 20c.8-3.6 3.6-5.5 7-5.5s6.2 1.9 7 5.5"/></svg>2–3 ч твоего времени</span></div>
+                <p class="flow-desc">Определяем, что исправлять и что убирать, с руководителями описываем, как должен работать каждый отдел.</p>
+                <p class="flow-result"><b>Результат:</b> план изменений, описания процессов и зоны ответственности</p>
+              </div></template><template data-detail="3"><div class="flow-detail-in">
+                <div class="flow-detail-head"><span class="flow-detail-num">Шаг 04</span><span class="flow-detail-name">Интеграция</span></div>
+                <div class="flow-chips"><span class="flow-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>4–6 недель</span><span class="flow-chip flow-chip-owner"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M5 20c.8-3.6 3.6-5.5 7-5.5s6.2 1.9 7 5.5"/></svg>7–9 ч твоего времени</span></div>
+                <p class="flow-desc">Продаем командам цели изменений, применяем быстрые решения и внедряем изменения. Обучаем, контролируем и адаптируем задачи.</p>
+                <p class="flow-result"><b>Результат:</b> новые процессы в работе, каждый понимает свою роль</p>
+              </div></template><template data-detail="4"><div class="flow-detail-in">
+                <div class="flow-detail-head"><span class="flow-detail-num">Шаг 05</span><span class="flow-detail-name">Тестирование</span></div>
+                <div class="flow-chips"><span class="flow-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>4–6 недель</span><span class="flow-chip flow-chip-owner"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M5 20c.8-3.6 3.6-5.5 7-5.5s6.2 1.9 7 5.5"/></svg>4–6 ч твоего времени</span></div>
+                <p class="flow-desc">Месяц смотрим, как работают процессы, что ломается, ищем сбои, устраняем.</p>
+                <p class="flow-result"><b>Результат:</b> отладка и тест автономности</p>
+              </div></template><template data-detail="5"><div class="flow-detail-in">
+                <div class="flow-detail-head"><span class="flow-detail-num">Шаг 06</span><span class="flow-detail-name">Финал</span></div>
+                <div class="flow-chips"><span class="flow-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>1,5–2 недели</span><span class="flow-chip flow-chip-owner"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M5 20c.8-3.6 3.6-5.5 7-5.5s6.2 1.9 7 5.5"/></svg>3 ч твоего времени</span></div>
+                <p class="flow-desc">Делаем финальный замер, закрепляем за процессами владельцев, я даю рекомендации по регулированию системы и куда двигаться дальше, и выхожу.</p>
+                <p class="flow-result"><b>Результат:</b> цели из шага 2 достигнуты, компания готова к росту благодаря устойчивой автономной системе</p>
+              </div></template>
+      <p class="flow-note">* Каждый проект индивидуален, сроки могут сдвигаться как в меньшую, так и в большую сторону.</p>
+      <div class="flow-cta"><button class="cta-btn" data-contact-open>Обсудить мою задачу <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div>
+      <button class="flow-less" type="button">Свернуть шаги <span class="flip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span></button>
+    </div>
+
+    <div class="flow flow-soon" data-flow="2" id="flow2" hidden>
+      <div class="flow-head">
+        <div class="flow-titles"><h3 class="flow-title">Масштабирование бизнеса</h3></div>
+        <span class="soon-badge">Методология в разработке</span>
+      </div>
+      <div class="flow-track" aria-hidden="true">
+        <div class="flow-line"><span class="flow-line-fill"></span></div>
+        <ol class="flow-steps"><li class="flow-step soon-step" style="--i:0; --p:0%"><span class="flow-node"><span class="flow-dot">01</span></span></li><li class="flow-step soon-step" style="--i:1; --p:20%"><span class="flow-node"><span class="flow-dot">02</span></span></li><li class="flow-step soon-step" style="--i:2; --p:40%"><span class="flow-node"><span class="flow-dot">03</span></span></li><li class="flow-step soon-step" style="--i:3; --p:60%"><span class="flow-node"><span class="flow-dot">04</span></span></li><li class="flow-step soon-step" style="--i:4; --p:80%"><span class="flow-node"><span class="flow-dot">05</span></span></li><li class="flow-step soon-step" style="--i:5; --p:100%"><span class="flow-node"><span class="flow-dot">06</span></span></li></ol>
+      </div>
+      <div class="soon-body">
+        <p class="soon-text">Здесь скоро появится дорожная карта работы с такой ситуацией: этапы, сроки и сколько твоего времени это займет.</p>
+        <p class="soon-text soon-sub">Узнал себя? Напиши мне, разберем твою задачу на звонке.</p>
+      </div>
+      <div class="flow-cta"><button class="cta-btn" data-contact-open>Обсудить мою задачу <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div>
+    </div>
+
+    <div class="flow flow-soon" data-flow="3" id="flow3" hidden>
+      <div class="flow-head">
+        <div class="flow-titles"><h3 class="flow-title">Скоро</h3></div>
+        <span class="soon-badge">Раздел в работе</span>
+      </div>
+      <div class="flow-track" aria-hidden="true">
+        <div class="flow-line"><span class="flow-line-fill"></span></div>
+        <ol class="flow-steps"><li class="flow-step soon-step" style="--i:0; --p:0%"><span class="flow-node"><span class="flow-dot">01</span></span></li><li class="flow-step soon-step" style="--i:1; --p:20%"><span class="flow-node"><span class="flow-dot">02</span></span></li><li class="flow-step soon-step" style="--i:2; --p:40%"><span class="flow-node"><span class="flow-dot">03</span></span></li><li class="flow-step soon-step" style="--i:3; --p:60%"><span class="flow-node"><span class="flow-dot">04</span></span></li><li class="flow-step soon-step" style="--i:4; --p:80%"><span class="flow-node"><span class="flow-dot">05</span></span></li><li class="flow-step soon-step" style="--i:5; --p:100%"><span class="flow-node"><span class="flow-dot">06</span></span></li></ol>
+      </div>
+      <div class="soon-body">
+        <p class="soon-text">Здесь скоро появится пошаговый план работы с такой ситуацией: этапы, сроки и сколько твоего времени это займет.</p>
+        <p class="soon-text soon-sub">Узнал себя уже сейчас? Напиши, разберем твою задачу на созвоне.</p>
+      </div>
+      <div class="flow-cta"><button class="cta-btn" data-contact-open>Обсудить мою задачу <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div>
+    </div>
+
+    <div class="flow flow-soon" data-flow="4" id="flow4" hidden>
+      <div class="flow-head">
+        <div class="flow-titles"><h3 class="flow-title">Скоро</h3></div>
+        <span class="soon-badge">Раздел в работе</span>
+      </div>
+      <div class="flow-track" aria-hidden="true">
+        <div class="flow-line"><span class="flow-line-fill"></span></div>
+        <ol class="flow-steps"><li class="flow-step soon-step" style="--i:0; --p:0%"><span class="flow-node"><span class="flow-dot">01</span></span></li><li class="flow-step soon-step" style="--i:1; --p:20%"><span class="flow-node"><span class="flow-dot">02</span></span></li><li class="flow-step soon-step" style="--i:2; --p:40%"><span class="flow-node"><span class="flow-dot">03</span></span></li><li class="flow-step soon-step" style="--i:3; --p:60%"><span class="flow-node"><span class="flow-dot">04</span></span></li><li class="flow-step soon-step" style="--i:4; --p:80%"><span class="flow-node"><span class="flow-dot">05</span></span></li><li class="flow-step soon-step" style="--i:5; --p:100%"><span class="flow-node"><span class="flow-dot">06</span></span></li></ol>
+      </div>
+      <div class="soon-body">
+        <p class="soon-text">Здесь скоро появится пошаговый план работы с такой ситуацией: этапы, сроки и сколько твоего времени это займет.</p>
+        <p class="soon-text soon-sub">Узнал себя уже сейчас? Напиши, разберем твою задачу на созвоне.</p>
+      </div>
+      <div class="flow-cta"><button class="cta-btn" data-contact-open>Обсудить мою задачу <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div>
+    </div>
+
   </section>
 
   <section id="philosophy">
@@ -2133,6 +2752,113 @@
       if (!c.classList.contains('flipped')) return;
       var h = c.querySelector('h4');
       goal('project_flip', {project: h ? h.textContent.trim() : ''});
+    });
+  });
+})();
+</script>
+<script>
+(function(){
+  const flows = document.querySelectorAll('.flow');
+  const section = document.getElementById('clients');
+  let revealed = false;
+  // раздел всплывает при прокрутке так же, как на сайте (0.8s)
+  const secIo = new IntersectionObserver(es => es.forEach(en => {
+    if (en.isIntersecting){
+      section.classList.add('visible'); revealed = true;
+      setTimeout(() => flows.forEach(f => { if (!f.hidden) f.classList.add('in'); }), 250);
+      secIo.disconnect();
+    }
+  }), { threshold: 0.2 });
+  secIo.observe(section);
+
+  // полоса показывается для активной ситуации; при смене вкладки всплывает как текст ситуации (0.45s)
+  function syncFlow(animate){
+    const act = document.querySelector('.client-tab.active');
+    let any = false;
+    flows.forEach(f => {
+      const show = !!act && f.dataset.flow === act.dataset.tab;
+      f.hidden = !show;
+      if (show){
+        any = true;
+        if (revealed){ f.classList.add('in'); }
+        if (animate){ f.classList.remove('swap'); void f.offsetWidth; f.classList.add('swap'); }
+      }
+    });
+    const actFlow = [...flows].find(f => !f.hidden);
+    section.classList.toggle('has-flow', !!actFlow && !actFlow.classList.contains('collapsed'));
+  }
+  document.querySelectorAll('.client-tab').forEach(t => t.addEventListener('click', () => setTimeout(() => syncFlow(true), 0)));
+  syncFlow(false);
+
+  flows.forEach(flow => {
+    const steps = flow.querySelectorAll('.flow-step:not(.soon-step)');
+    if (!steps.length) return;
+    const body = flow.querySelector('.flow-detail-body');
+    const fill = flow.querySelector('.flow-line-fill');
+    const count = flow.querySelector('.flow-count b');
+    const prev = flow.querySelector('[data-dir="-1"]'), next = flow.querySelector('[data-dir="1"]');
+    let cur = -1;
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    function go(i){
+      i = Math.max(0, Math.min(steps.length - 1, i));
+      if (i === cur) return;
+      const dir = cur < 0 ? 0 : (i > cur ? 1 : -1);
+      cur = i;
+      steps.forEach((s, k) => {
+        s.classList.toggle('active', k === cur);
+        s.classList.toggle('done', k < cur);
+        s.querySelector('.flow-node').setAttribute('aria-pressed', k === cur);
+      });
+      const pct = (cur / (steps.length - 1) * 100) + '%';
+      fill.style.setProperty('--fill', pct);
+      flow.style.setProperty('--cur-p', pct);
+      const from = body.offsetHeight;
+      body.innerHTML = flow.querySelector(`template[data-detail="${cur}"]`).innerHTML;
+      if (dir !== 0 && !reduce){
+        body.firstElementChild.classList.add(dir > 0 ? 'from-r' : 'from-l');
+        const to = body.scrollHeight;
+        body.style.height = from + 'px';
+        requestAnimationFrame(() => { body.style.height = to + 'px'; });
+        clearTimeout(body._t); body._t = setTimeout(() => { body.style.height = ''; }, 450);
+      }      count.textContent = String(cur + 1).padStart(2, '0');
+      prev.disabled = cur === 0; next.disabled = cur === steps.length - 1;
+    }
+    const more = flow.querySelector('.flow-more'), less = flow.querySelector('.flow-less');
+    function setOpen(open){
+      if (open === !flow.classList.contains('collapsed')) return;
+      const h0 = flow.offsetHeight;
+      flow.classList.toggle('collapsed', !open);
+      flow.classList.toggle('just-opened', open);
+      more.setAttribute('aria-expanded', open);
+      section.classList.toggle('has-flow', open);
+      if (reduce) return;
+      const h1 = flow.offsetHeight;
+      flow.style.height = h0 + 'px'; flow.style.overflow = 'hidden';
+      void flow.offsetWidth;
+      flow.style.transition = 'height 0.45s cubic-bezier(.4,.2,.2,1)';
+      flow.style.height = h1 + 'px';
+      clearTimeout(flow._ht);
+      flow._ht = setTimeout(() => { flow.style.height = ''; flow.style.overflow = ''; flow.style.transition = ''; flow.classList.remove('just-opened'); }, 480);
+      if (!open){ const top = flow.getBoundingClientRect().top; if (top < 70) window.scrollBy({ top: top - 90, behavior: 'smooth' }); }
+    }
+    more.addEventListener('click', () => setOpen(true));
+    less.addEventListener('click', () => setOpen(false));
+    steps.forEach((s, k) => s.querySelector('.flow-node').addEventListener('click', () => { const was = flow.classList.contains('collapsed'); setOpen(true); go(k); }));
+    prev.addEventListener('click', () => go(cur - 1));
+    next.addEventListener('click', () => go(cur + 1));
+    go(0);
+    const card = flow.querySelector('.flow-detail');
+    let x0 = null, y0 = null;
+    card.addEventListener('touchstart', e => { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, { passive: true });
+    card.addEventListener('touchend', e => {
+      if (x0 === null) return;
+      const dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0;
+      if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) go(cur + (dx < 0 ? 1 : -1));
+      x0 = null;
+    });
+    flow.addEventListener('keydown', e => {
+      if (e.key === 'ArrowRight'){ go(cur + 1); e.preventDefault(); }
+      if (e.key === 'ArrowLeft'){ go(cur - 1); e.preventDefault(); }
     });
   });
 })();
